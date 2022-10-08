@@ -40,7 +40,7 @@ export class AxiosPool {
     this.pool = instances
   }
 
-  async get (url: string, options: AxiosRequestConfig): Promise<AxiosResponse> {
+  public async get (url: string, options: AxiosRequestConfig): Promise<AxiosResponse> {
     return this.request({
       method: 'get',
       url,
@@ -48,7 +48,7 @@ export class AxiosPool {
     })
   }
 
-  async post (url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
+  public async post (url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
     return this.request({
       method: 'post',
       data,
@@ -57,7 +57,7 @@ export class AxiosPool {
     })
   }
 
-  async delete (url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
+  public async delete (url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
     return this.request({
       method: 'delete',
       data,
@@ -66,7 +66,7 @@ export class AxiosPool {
     })
   }
 
-  async put (url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
+  public async put (url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
     return this.request({
       method: 'put',
       data,

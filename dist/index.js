@@ -8,10 +8,8 @@ const axios_1 = __importDefault(require("axios"));
 function createAxiosPool(initialOptions, ...configs) {
     const pool = new AxiosPool(initialOptions, ...configs);
     const target = {
-        get: (target, name) => {
-            return async function (url, data, options) {
-                return pool[name](url, data, options);
-            };
+        get: (target, name) => async function (url, data, options) {
+            return pool[name](url, data, options);
         }
     };
     return new Proxy({}, target);
@@ -21,7 +19,7 @@ class AxiosPool {
     constructor(options, ...configs) {
         this.currentIndex = 0;
         const instances = [];
-        configs.forEach(config => {
+        configs.forEach((config) => {
             if (typeof config === 'string') {
                 instances.push(axios_1.default.create({ baseURL: config }));
             }
@@ -73,7 +71,7 @@ class AxiosPool {
         catch (error) {
             if (this.pool[this.currentIndex + 1]) {
                 if (this.options.timeout > 0) {
-                    await new Promise(resolve => setTimeout(resolve, this.options.timeout));
+                    await new Promise((resolve) => setTimeout(resolve, this.options.timeout));
                 }
                 this.currentIndex += 1;
                 return this.request(options);
