@@ -12,7 +12,9 @@ export function createAxiosPool (
   const pool = new AxiosPool(initialOptions, ...configs)
   const target = {
     get: (target, name: keyof AxiosPool) => async function (url: string, data, options: AxiosRequestConfig) {
-      return pool[name](url, data, options)
+      if (pool[name]) {
+        return pool[name](url, data, options)
+      }
     }
   }
   return new Proxy({}, target)
@@ -34,8 +36,8 @@ export class AxiosPool {
       }
     })
     this.options = {
-      sendAll: options.sendAll || true,
-      timeout: options.timeout || 0
+      sendAll: options?.sendAll || true,
+      timeout: options?.timeout || 0
     }
     this.pool = instances
   }
