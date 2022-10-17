@@ -9,7 +9,9 @@ function createAxiosPool(initialOptions, ...configs) {
     const pool = new AxiosPool(initialOptions, ...configs);
     const target = {
         get: (target, name) => async function (url, data, options) {
-            return pool[name](url, data, options);
+            if (pool[name]) {
+                return pool[name](url, data, options);
+            }
         }
     };
     return new Proxy({}, target);
@@ -28,8 +30,8 @@ class AxiosPool {
             }
         });
         this.options = {
-            sendAll: options.sendAll || true,
-            timeout: options.timeout || 0
+            sendAll: (options === null || options === void 0 ? void 0 : options.sendAll) || true,
+            timeout: (options === null || options === void 0 ? void 0 : options.timeout) || 0
         };
         this.pool = instances;
     }
