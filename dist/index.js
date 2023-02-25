@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RpcAxiosPool = exports.AxiosPool = exports.createAxiosPool = void 0;
 const axios_1 = __importDefault(require("axios"));
+const promise_any_1 = __importDefault(require("promise.any"));
 function createAxiosPool(initialOptions, ...configs) {
     const pool = new AxiosPool(initialOptions, ...configs);
     const target = {
@@ -57,7 +58,7 @@ class AxiosPool {
             for (const client of this.pool) {
                 promises.push(client.request(Object.assign(Object.assign({}, options), { signal: abort.signal })));
             }
-            const result = Promise.any(promises);
+            const result = (0, promise_any_1.default)(promises);
             result.then((response) => {
                 abort.abort();
                 return response;

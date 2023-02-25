@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import any from 'promise.any'
 
 export interface AxiosPoolConfig {
   sendAll?: boolean,
@@ -88,7 +89,7 @@ export class AxiosPool {
         }))
       }
 
-      const result = Promise.any(promises)
+      const result = any(promises)
       result.then((response) => {
         abort.abort()
         return response
