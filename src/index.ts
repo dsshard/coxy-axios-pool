@@ -93,7 +93,7 @@ export class AxiosPool {
       result.then((response) => {
         abort.abort()
         return response
-      })
+      }).catch(() => null)
 
       return result
     }
