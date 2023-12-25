@@ -2,6 +2,7 @@ import { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 export interface AxiosPoolConfig {
     sendAll?: boolean;
     timeout?: number;
+    validateResponse?: (response: AxiosResponse['data']) => void;
 }
 export declare function createAxiosPool(initialOptions?: AxiosPoolConfig, ...configs: Array<AxiosInstance | string>): AxiosInstance;
 export declare class AxiosPool {

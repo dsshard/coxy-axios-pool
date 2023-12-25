@@ -31,8 +31,9 @@ class AxiosPool {
             }
         });
         this.options = {
-            sendAll: (options === null || options === void 0 ? void 0 : options.sendAll) || true,
-            timeout: (options === null || options === void 0 ? void 0 : options.timeout) || 0
+            sendAll: (options === null || options === void 0 ? void 0 : options.sendAll) === undefined ? true : options.sendAll,
+            timeout: (options === null || options === void 0 ? void 0 : options.timeout) === undefined ? 0 : options === null || options === void 0 ? void 0 : options.timeout,
+            validateResponse: (options === null || options === void 0 ? void 0 : options.validateResponse) ? options === null || options === void 0 ? void 0 : options.validateResponse : () => Promise.resolve()
         };
         this.pool = instances;
     }
@@ -56,18 +57,31 @@ class AxiosPool {
             const abort = new AbortController();
             const promises = [];
             for (const client of this.pool) {
-                promises.push(client.request(Object.assign(Object.assign({}, options), { signal: abort.signal })));
+                promises.push(client.request(Object.assign(Object.assign({}, options), { signal: abort.signal, transformResponse: [(data) => {
+                            let json;
+                            try {
+                                json = JSON.parse(data);
+                            }
+                            catch (_a) { }
+                            if (json) {
+                                this.options.validateResponse(json);
+                                return json;
+                            }
+                            this.options.validateResponse(data);
+                            return data;
+                        }] })));
             }
             const result = (0, promise_any_1.default)(promises);
-            result.then((response) => {
+            result.then(async (response) => {
                 abort.abort();
                 return response;
-            });
+            }).catch(() => null);
             return result;
         }
         const instance = this.pool[this.currentIndex];
         try {
             const result = await instance.request(options);
+            this.options.validateResponse(result.data);
             this.currentIndex = 0;
             return result;
         }

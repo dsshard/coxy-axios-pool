@@ -4,6 +4,7 @@ import any from 'promise.any'
 export interface AxiosPoolConfig {
   sendAll?: boolean,
   timeout?: number
+  validateResponse?: (response: AxiosResponse['data']) => void
 }
 
 export function createAxiosPool (
@@ -37,8 +38,9 @@ export class AxiosPool {
       }
     })
     this.options = {
-      sendAll: options?.sendAll || true,
-      timeout: options?.timeout || 0
+      sendAll: options?.sendAll === undefined ? true : options.sendAll,
+      timeout: options?.timeout === undefined ? 0 : options?.timeout,
+      validateResponse: options?.validateResponse ? options?.validateResponse : () => Promise.resolve()
     }
     this.pool = instances
   }
@@ -85,21 +87,36 @@ export class AxiosPool {
       for (const client of this.pool) {
         promises.push(client.request({
           ...options,
-          signal: abort.signal
+          signal: abort.signal,
+          transformResponse: [(data) => {
+            let json
+            try {
+              json = JSON.parse(data)
+            } catch {}
+
+            if (json) {
+              this.options.validateResponse(json)
+              return json
+            }
+            this.options.validateResponse(data)
+            return data
+          }]
         }))
       }
 
       const result = any(promises)
-      result.then((response) => {
+      result.then(async (response: AxiosResponse) => {
         abort.abort()
         return response
       }).catch(() => null)
 
       return result
     }
+
     const instance = this.pool[this.currentIndex]
     try {
       const result = await instance.request(options)
+      this.options.validateResponse(result.data)
       this.currentIndex = 0
       return result
     } catch (error) {
