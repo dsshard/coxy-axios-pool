@@ -1,23 +1,23 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import any from 'promise.any'
 
 export interface AxiosPoolConfig {
-  sendAll?: boolean,
+  sendAll?: boolean
   timeout?: number
   validateResponse?: (response: AxiosResponse['data']) => void
 }
 
-export function createAxiosPool (
+export function createAxiosPool(
   initialOptions?: AxiosPoolConfig,
   ...configs: Array<AxiosInstance | string>
 ): AxiosInstance {
   const pool = new AxiosPool(initialOptions, ...configs)
   const target = {
-    get: (target, name: keyof AxiosPool) => async function (url: string, data, options: AxiosRequestConfig) {
+    get: (target, name: keyof AxiosPool) => async (url: string, data, options: AxiosRequestConfig) => {
       if (pool[name]) {
         return pool[name](url, data, options)
       }
-    }
+    },
   }
   return new Proxy({}, target)
 }
@@ -28,87 +28,93 @@ export class AxiosPool {
 
   private readonly pool: AxiosInstance[]
 
-  constructor (options?: AxiosPoolConfig, ...configs: Array<AxiosInstance | string>) {
+  constructor(options?: AxiosPoolConfig, ...configs: Array<AxiosInstance | string>) {
     const instances = []
-    configs.forEach((config) => {
+    for (const config of configs) {
       if (typeof config === 'string') {
         instances.push(axios.create({ baseURL: config }))
       } else {
         instances.push(config)
       }
-    })
+    }
     this.options = {
       sendAll: options?.sendAll === undefined ? true : options.sendAll,
       timeout: options?.timeout === undefined ? 0 : options?.timeout,
-      validateResponse: options?.validateResponse ? options?.validateResponse : () => Promise.resolve()
+      validateResponse: options?.validateResponse ? options?.validateResponse : () => Promise.resolve(),
     }
     this.pool = instances
   }
 
-  public async get (url: string, options: AxiosRequestConfig): Promise<AxiosResponse> {
+  public async get(url: string, options: AxiosRequestConfig): Promise<AxiosResponse> {
     return this.request({
       method: 'get',
       url,
-      ...options
+      ...options,
     })
   }
 
-  public async post (url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
+  public async post(url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
     return this.request({
       method: 'post',
       data,
       url,
-      ...options
+      ...options,
     })
   }
 
-  public async delete (url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
+  public async delete(url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
     return this.request({
       method: 'delete',
       data,
       url,
-      ...options
+      ...options,
     })
   }
 
-  public async put (url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
+  public async put(url: string, data, options: AxiosRequestConfig): Promise<AxiosResponse> {
     return this.request({
       method: 'put',
       data,
       url,
-      ...options
+      ...options,
     })
   }
 
-  private async request (options: AxiosRequestConfig): Promise<AxiosResponse> {
+  private async request(options: AxiosRequestConfig): Promise<AxiosResponse> {
     if (this.options.sendAll) {
       const abort = new AbortController()
       const promises = []
       for (const client of this.pool) {
-        promises.push(client.request({
-          ...options,
-          signal: abort.signal,
-          transformResponse: [(data) => {
-            let json
-            try {
-              json = JSON.parse(data)
-            } catch {}
+        promises.push(
+          client.request({
+            ...options,
+            signal: abort.signal,
+            transformResponse: [
+              (data) => {
+                let json: unknown
+                try {
+                  json = JSON.parse(data)
+                } catch {}
 
-            if (json) {
-              this.options.validateResponse(json)
-              return json
-            }
-            this.options.validateResponse(data)
-            return data
-          }]
-        }))
+                if (json) {
+                  this.options.validateResponse(json)
+                  return json
+                }
+                this.options.validateResponse(data)
+                return data
+              },
+            ],
+          }),
+        )
       }
 
       const result = any(promises)
-      result.then(async (response: AxiosResponse) => {
-        abort.abort()
-        return response
-      }).catch(() => null)
+      result
+        .then(async (response: AxiosResponse) => {
+          abort.abort()
+          return response
+        })
+        .catch(() => null)
 
       return result
     }
@@ -137,17 +143,18 @@ export class RpcAxiosPool {
   private readonly pool: AxiosInstance
   private id = 0
 
-  constructor (nodes: Array<AxiosInstance | string>, options?: AxiosPoolConfig) {
+  constructor(nodes: Array<AxiosInstance | string>, options?: AxiosPoolConfig) {
     this.pool = createAxiosPool(options, ...nodes)
   }
 
-  public async request (method: string, ...params: any): Promise<AxiosResponse> {
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  public async request(method: string, ...params: any): Promise<AxiosResponse> {
     this.id += 1
     return await this.pool.post('/', {
       jsonrpc: '2.0',
       id: this.id,
       method,
-      params: params || []
+      params: params || [],
     })
   }
 }
