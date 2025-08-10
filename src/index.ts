@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import any from 'promise.any'
+import { PromiseAny } from './any'
 
 export interface AxiosPoolConfig {
   sendAll?: boolean
@@ -13,7 +13,7 @@ export function createAxiosPool(
 ): AxiosInstance {
   const pool = new AxiosPool(initialOptions, ...configs)
   const target = {
-    get: (target, name: keyof AxiosPool) => async (url: string, data, options: AxiosRequestConfig) => {
+    get: (_target, name: keyof AxiosPool) => async (url: string, data, options: AxiosRequestConfig) => {
       if (pool[name]) {
         return pool[name](url, data, options)
       }
@@ -80,7 +80,7 @@ export class AxiosPool {
     })
   }
 
-  private async request(options: AxiosRequestConfig): Promise<AxiosResponse> {
+  private async request(options: AxiosRequestConfig) {
     if (this.options.sendAll) {
       const abort = new AbortController()
       const promises = []
@@ -108,7 +108,7 @@ export class AxiosPool {
         )
       }
 
-      const result = any(promises)
+      const result = PromiseAny(promises)
       result
         .then(async (response: AxiosResponse) => {
           abort.abort()
@@ -147,7 +147,7 @@ export class RpcAxiosPool {
     this.pool = createAxiosPool(options, ...nodes)
   }
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: <any>
   public async request(method: string, ...params: any): Promise<AxiosResponse> {
     this.id += 1
     return await this.pool.post('/', {
